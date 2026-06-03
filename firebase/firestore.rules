@@ -1,0 +1,167 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function adminDoc() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isSignedIn() && adminDoc().data.role in ['super_admin', 'sub_admin'];
+    }
+
+    function isSuperAdmin() {
+      return isAdmin() && adminDoc().data.role == 'super_admin';
+    }
+
+    function isSubAdmin() {
+      return isAdmin() && adminDoc().data.role == 'sub_admin';
+    }
+
+    function subAdminCompanyId() {
+      return adminDoc().data.companyId;
+    }
+
+    function companyMatches(companyId) {
+      return isSuperAdmin() || (isSubAdmin() && subAdminCompanyId() == companyId);
+    }
+
+    function isCommuterSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Signed-in user without an admins/{uid} profile (commuter app account).
+    function isCommuter() {
+      return isSignedIn()
+        && !exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function commuterProfile() {
+      return get(/databases/$(database)/documents/commuters/$(request.auth.uid));
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && (request.auth.uid == adminId || isSuperAdmin());
+      allow create: if isSignedIn()
+        && request.auth.uid == adminId
+        && !exists(/databases/$(database)/documents/admins/$(adminId))
+        && request.resource.data.role in ['super_admin', 'sub_admin']
+        && request.resource.data.keys().hasAll(['email', 'displayName', 'role']);
+      allow update, delete: if isSuperAdmin();
+    }
+
+    match /commuters/{userId} {
+      allow read: if isCommuterSelf(userId) || isSuperAdmin();
+
+      allow create: if isCommuterSelf(userId)
+        && !exists(/databases/$(database)/documents/commuters/$(userId))
+        && request.resource.data.subscriptionStatus == 'free'
+        && request.resource.data.keys().hasAll(['email', 'displayName', 'subscriptionStatus']);
+
+      allow update: if isSuperAdmin()
+        || (isCommuterSelf(userId)
+          && resource.data.subscriptionStatus == 'free'
+          && request.resource.data.subscriptionStatus == 'pending');
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /companies/{companyId} {
+      allow read: if companyMatches(companyId)
+        || isCommuter()
+        || resource.data.status == 'active';
+      allow create: if isSuperAdmin()
+        || (isSignedIn() && !exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+      allow update, delete: if isSuperAdmin();
+
+      match /routes/{routeId} {
+        allow read: if true;
+        allow create, update, delete: if companyMatches(companyId);
+      }
+
+      match /buses/{busId} {
+        allow read: if true;
+        allow create, update, delete: if companyMatches(companyId);
+      }
+
+      match /fares/{fareId} {
+        allow read: if true;
+        allow create, update, delete: if companyMatches(companyId);
+      }
+    }
+
+    match /payment_requests/{requestId} {
+      allow read: if isSuperAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isCommuter()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.amount == 99
+        && request.resource.data.plan == 'pro_monthly'
+        && request.resource.data.senderName is string
+        && request.resource.data.senderName.size() >= 2
+        && request.resource.data.proofImageBase64 is string
+        && request.resource.data.proofImageBase64.size() > 0
+        && request.resource.data.proofImageBase64.size() <= 900000
+        && commuterProfile().data.subscriptionStatus == 'free';
+
+      allow update: if isSuperAdmin()
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['approved', 'rejected'];
+
+      allow delete: if isSuperAdmin();
+    }
+
+    match /platform_stats/{docId} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    function isValidAlertPayload() {
+      return request.resource.data.userId is string
+        && request.resource.data.type is string
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 2
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 2
+        && request.resource.data.body.size() <= 500
+        && request.resource.data.read == false
+        && request.resource.data.keys().hasAll(['userId', 'type', 'title', 'body', 'read', 'createdAt']);
+    }
+
+    match /commuter_alerts/{alertId} {
+      allow read: if isSuperAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isValidAlertPayload()
+        && (
+          (isSuperAdmin()
+            && request.resource.data.type in [
+              'payment_pending',
+              'payment_approved',
+              'payment_rejected',
+              'trip',
+              'traffic'
+            ])
+          || (isSignedIn()
+            && request.resource.data.userId == request.auth.uid
+            && request.resource.data.type in ['payment_pending', 'trip', 'traffic'])
+        );
+
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && resource.data.read == false
+        && request.resource.data.read == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+
+      allow delete: if isSuperAdmin()
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+  }
+}
