@@ -185,8 +185,8 @@ Before running the project, ensure you have installed:
 
 ### Mobile Application
 
-![Mobile App](screenshots/a9b35eb9-4813-4241-88dd-c42a356a1f33.jpg)
-![Mobile App](screenshots/fa2f6b80-320b-49dc-9d67-ac7ed505c698.jpg)
+![Mobile App](screenshot/a9b35eb9-4813-4241-88dd-c42a356a1f33.jpg)
+![Mobile App](screenshot/fa2f6b80-320b-49dc-9d67-ac7ed505c698.jpg)
 
 
 ---
