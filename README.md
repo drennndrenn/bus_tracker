@@ -185,10 +185,10 @@ Before running the project, ensure you have installed:
 
 ### Mobile Application
 
-![Mobile App](screenshot/a9b35eb9-4813-4241-88dd-c42a356a1f33.jpg)
-![Mobile App](screenshot/fa2f6b80-320b-49dc-9d67-ac7ed505c698.jpg)
-
-
+<p align="center">
+  <img src="screenshots/a9b35eb9-4813-4241-88dd-c42a356a1f33.jpg" width="300">
+  <img src="screenshots/fa2f6b80-320b-49dc-9d67-ac7ed505c698.jpg" width="300">
+</p>
 ---
 ## ⚠️ Project Note
 
