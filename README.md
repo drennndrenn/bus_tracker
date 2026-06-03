@@ -1,25 +1,19 @@
-# Smart Bus Tracker
+# 🚍 Smart Bus Tracker
 
-- **`mobile_app/`** — Flutter commuter app (Android / emulator)
-- **`admin_web/`** — Web admin dashboard (super admin + sub admin)
-- **`firebase/`** — Firestore rules, Cloud Functions, hosting config
+A full-stack real-time bus tracking and management system built with Flutter, React, and Firebase.  
+It connects commuters, admins, and live transit data into one unified platform.
 
-## Commuter app
+---
 
-```bash
-cd mobile_app
-flutter pub get
-flutter run
-```
+## ✨ Overview
 
-## Admin dashboard
+Smart Bus Tracker is designed to improve public transportation efficiency by providing:
 
-See **[FIREBASE_SETUP.md](FIREBASE_SETUP.md)** for Firebase project creation, deploy, and demo accounts.
+- 📱 Real-time commuter tracking via mobile app  
+- 💻 Admin dashboard for route and system management  
+- 🔥 Firebase-powered real-time backend  
+- 🔐 Role-based access control (Super Admin & Sub Admin)
 
-```bash
-cd admin_web
-npm install
-npm run dev
-```
+---
 
-One login page; role in Firestore routes to **Super Admin** or **Sub Admin** dashboard.
+## 🧱 Project Structure
